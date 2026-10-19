@@ -1,18 +1,28 @@
 <!doctype html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#0b0e12">
-    <title>Carnet de route — Prototype</title>
-    <link rel="stylesheet" href="css/style.css">
-    <script src="js/app.js" defer></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Carnet de route">
+  <meta name="description" content="Votre carnet kilométrique personnel, disponible hors ligne.">
+  <title>Carnet de route</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./css/style.css">
+  <script type="module" src="./js/app.js"></script>
 </head>
 <body>
-    <main class="app">
-        <div id="view"></div>
-    </main>
-
-    <nav class="bottom" id="nav"></nav>
+  <main class="app">
+    <header><h1 id="title" tabindex="-1">Carnet de route</h1></header>
+    <p id="offline" class="tiny" role="status">Préparation du mode hors ligne…</p>
+    <p id="message" role="status" aria-live="polite"></p>
+    <div id="view"><p>Ouverture du carnet…</p></div>
+    <noscript>Activez JavaScript pour utiliser votre carnet de route.</noscript>
+  </main>
+  <nav class="bottom" id="nav" aria-label="Navigation principale"></nav>
 </body>
 </html>
