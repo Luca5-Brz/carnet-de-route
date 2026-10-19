@@ -13,3 +13,39 @@ jobs:
         with:
           node-version: '24'
       - run: node --test tests/data.test.mjs
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: carnet-de-route
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright and Chromium
+        run: |
+          python -m pip install -r carnet-de-route/tests/requirements.txt
+          python -m playwright install --with-deps chromium
+      - name: Run browser regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8001 --bind 127.0.0.1 --directory "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/carnet-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"; cat "$RUNNER_TEMP/carnet-server.log"' EXIT
+          python3 - <<'PY'
+          import time
+          import urllib.request
+          for attempt in range(50):
+              try:
+                  with urllib.request.urlopen('http://127.0.0.1:8001/carnet-de-route/', timeout=1) as response:
+                      assert response.status == 200
+                  break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise SystemExit('Development server did not become ready')
+          PY
+          python3 carnet-de-route/tests/browser.py
+          python3 carnet-de-route/tests/ongoing.py

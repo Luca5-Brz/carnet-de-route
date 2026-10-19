@@ -12,14 +12,14 @@ export async function open() {
         const r=db.transaction('state').objectStore('state').get('data');
         r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error);
     });
-    if (existing) return validate({version:1,data:existing});
+    if (existing) return validate({version:2,data:existing});
     const legacy=localStorage.getItem('carnet-route-demo-v1');
     const data=legacy ? migrate(JSON.parse(legacy)) : empty();
     await write(data); // Retain the legacy copy until the user chooses to remove it.
     return data;
 }
 export function write(data) {
-    const clean=validate({version:1,data});
+    const clean=validate({version:2,data});
     return new Promise((resolve,reject)=>{
         const tx=db.transaction('state','readwrite');
         tx.objectStore('state').put(clean,'data');
