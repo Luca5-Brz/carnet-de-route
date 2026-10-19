@@ -390,3 +390,8 @@ button:focus-visible, a:focus-visible, .file-label:focus-visible { outline:2px s
 .danger { margin-top:12px; border:1px solid #753c48; border-radius:10px; }
 h1 { overflow-wrap:anywhere; }
 @media (prefers-reduced-motion:reduce) { #view { animation:none; } }
+
+.ongoing { padding:16px; margin:12px 0; }
+.ongoing h3 { margin:0; overflow-wrap:anywhere; }
+.ongoing p { overflow-wrap:anywhere; }
+[hidden] { display:none !important; }

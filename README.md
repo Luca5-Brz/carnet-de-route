@@ -1,4 +1,4 @@
-# Carnet de route — V1
+# Carnet de route — V1.1
 
 PWA personnelle en français pour iPhone : véhicules, événements et trajets kilométriques. HTML, CSS et JavaScript natifs, sans backend, dépendance d’exécution ni outil de compilation.
 
@@ -15,9 +15,15 @@ Ouvrir le chemin `/carnet-de-route/` sur ce serveur. Le nom du dossier doit êtr
 ## Utilisation
 
 - **Accueil** : total kilométrique et accès rapide.
-- **Nouveau trajet** : véhicule, événement, date, compteurs entiers et remarque facultative. La distance est calculée ; les compteurs négatifs et une arrivée inférieure au départ sont refusés.
+- **Nouveau trajet** : choisir « Trajet complet » pour saisir les deux compteurs, ou « Démarrer un trajet — En cours » pour saisir uniquement le départ. Véhicule, événement et date sont requis ; la remarque est facultative. Les compteurs doivent être des entiers positifs ou nuls, et l’arrivée ne peut pas être inférieure au départ.
 - **Historique** : événements triés par date décroissante → véhicules utilisés → trajets, avec totaux par véhicule et événement. Toucher un trajet pour le modifier ou le supprimer.
 - **Gestion** : ajouter et modifier véhicules (nom, immatriculation) et événements (nom, date, lieu), gérer les sauvegardes.
+
+### Trajets en cours
+
+Plusieurs trajets peuvent être en cours sur des véhicules différents, avec **un seul trajet en cours par véhicule**. La règle est vérifiée lors de la création, modification et restauration JSON. Un trajet complet reste saisissable même si le véhicule a un autre trajet en cours.
+
+L’Accueil affiche chaque trajet en cours avec « Terminer le trajet ». Cet écran demande uniquement le compteur d’arrivée, calcule la distance et conserve la date, l’événement et la remarque du départ. Une arrivée égale au départ est autorisée (0 km). L’historique conserve la hiérarchie Événement → Véhicules → Trajets et permet de modifier ou supprimer aussi les trajets en cours. **Seuls les trajets terminés contribuent aux totaux kilométriques**, y compris à l’Accueil.
 
 Une suppression demande confirmation. Un véhicule ou événement associé à des trajets ne peut pas être supprimé : réaffecter les trajets auparavant. Modifier les noms ou dates conserve les identifiants et les trajets associés. Aucun jeu de données fictives n’est créé.
 
@@ -29,8 +35,10 @@ Les données sont écrites dans **IndexedDB**, base `carnet-route`, après chaqu
 
 Dans Gestion :
 
-- **CSV Excel** : UTF-8 avec BOM, séparateur point-virgule, champs entre guillemets, dates ISO et une ligne par trajet. Les cellules commençant par un marqueur de formule sont préfixées d’une apostrophe pour limiter leur interprétation comme formule.
-- **JSON** : sauvegarde complète avec `version: 1`, `exportedAt` et `data` contenant les tableaux `vehicles`, `events`, `trips`.
+- **CSV Excel** : colonne « Statut » (`En cours` / `Terminé`), arrivée et distance vides tant que le trajet est en cours. UTF-8 avec BOM, séparateur point-virgule, champs entre guillemets, dates ISO et une ligne par trajet. Les cellules commençant par un marqueur de formule sont préfixées d’une apostrophe pour limiter leur interprétation comme formule.
+- **JSON** : sauvegarde complète avec `version: 2`, `exportedAt` et `data` contenant les tableaux `vehicles`, `events`, `trips`.
+Les trajets V1.1 possèdent un `status` (`in-progress` ou `completed`). Un trajet en cours a `end: null`. Les anciennes données IndexedDB et sauvegardes JSON `version: 1` restent lisibles : les trajets sans statut sont considérés comme terminés, sans modification de leurs compteurs ni de leurs identifiants. Le nom de base IndexedDB reste inchangé et aucune suppression de données n’est nécessaire. Les sauvegardes V2 doivent être restaurées avec V1.1 ou ultérieure.
+
 - **Restauration JSON** : maximum 10 Mo, vérification de la version, des champs, dates, identifiants uniques, références et compteurs. Une confirmation indique les quantités avant remplacement atomique de la base. Une sauvegarde invalide conserve les données existantes.
 
 Exportez régulièrement le JSON dans Fichiers/iCloud Drive : supprimer les données Safari ou l’application, perdre l’appareil ou l’éviction du stockage par iOS peut effacer le carnet. Il n’y a pas de synchronisation entre appareils ou navigateurs. Les onglets ouverts simultanément ne synchronisent pas leur état : utiliser un seul onglet pour la saisie.
@@ -71,8 +79,9 @@ Tests fonctionnels : Python 3, paquet `playwright` et Chromium requis **uniqueme
 
 ```sh
 python3 tests/browser.py
+python3 tests/ongoing.py
 ```
 
-Le test utilise `/usr/bin/chromium` et des profils temporaires : création/modification, blocage des suppressions liées, export CSV/JSON, restauration valide et invalide, migration, disposition mobile et création/consultation après coupure réseau et rechargement. Il ne modifie pas votre profil utilisateur. Sur une autre machine, installer Playwright avec `python3 -m pip install playwright` et adapter le chemin de Chromium si nécessaire.
+Le test utilise `/usr/bin/chromium` et des profils temporaires : création/modification, blocage des suppressions liées, export CSV/JSON, restauration valide et invalide, migration, disposition mobile et création/consultation après coupure réseau et rechargement. Le second parcours vérifie spécifiquement les anciennes données IndexedDB et JSON, deux trajets en cours sur des véhicules distincts, le refus d’un doublon, la modification/suppression, la clôture hors ligne, les totaux et la restauration V2. Les tests ne modifient pas votre profil utilisateur. Sur une autre machine, installer Playwright avec `python3 -m pip install playwright` et adapter le chemin de Chromium si nécessaire.
 
 Une vérification manuelle sur un iPhone reste nécessaire pour valider les particularités de Safari, le menu de partage, le téléchargement des sauvegardes et le lancement depuis l’écran d’accueil.
