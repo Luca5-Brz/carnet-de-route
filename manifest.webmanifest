@@ -1,0 +1,16 @@
+{
+  "id": "/carnet-de-route/",
+  "name": "Carnet de route",
+  "short_name": "Carnet de route",
+  "lang": "fr-BE",
+  "description": "Carnet kilométrique personnel hors ligne",
+  "start_url": "/carnet-de-route/",
+  "scope": "/carnet-de-route/",
+  "display": "standalone",
+  "background_color": "#0b0e12",
+  "theme_color": "#0b0e12",
+  "icons": [
+    {"src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

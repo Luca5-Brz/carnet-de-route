@@ -358,3 +358,35 @@ input[type="date"] {
     box-sizing: border-box;
     color-scheme: dark;
 }
+
+/* V1 : formulaires iOS, historique imbriqué et commandes accessibles. */
+input, select, textarea { font-size:16px; }
+button { min-height:44px; }
+button:disabled { opacity:.5; cursor:wait; }
+button:focus-visible, a:focus-visible, .file-label:focus-visible { outline:2px solid #72b3ff; outline-offset:3px; }
+#title:focus { outline:none; }
+.bottom button[aria-current="page"] { color:#72b3ff; }
+.bottom button { min-width:0; flex:1; font-size:11px; }
+.listrow small { display:block; color:var(--muted); margin-top:5px; }
+.listrow > div, .trip > span { min-width:0; overflow-wrap:anywhere; }
+.error { color:#ffaaaa; background:#3d1b25; padding:12px; border-radius:10px; }
+.success { color:#a3e9b5; }
+#message:empty { display:none; }
+.eyebrow { font-size:11px; letter-spacing:2px; color:var(--muted); margin:25px 0 16px; }
+.event-group { margin:18px 0; overflow:hidden; }
+.event-group header { padding:18px; background:var(--card2); gap:12px; }
+.event-group h2 { margin:0 0 6px; overflow-wrap:anywhere; }
+.event-group header strong { white-space:nowrap; }
+.event-group small { color:var(--muted); }
+.vehicle-group { margin:12px; padding-left:12px; border-left:2px solid var(--blue); }
+.vehicle-group h3 { font-size:15px; margin:10px 0; overflow-wrap:anywhere; }
+.trip { width:100%; background:none; color:var(--text); border:0; border-top:1px solid var(--line); text-align:left; padding:14px 0; }
+.trip > strong { white-space:nowrap; }
+.distance output { display:block; font-size:26px; font-weight:700; margin-top:5px; color:var(--text); }
+.backups { padding:16px; display:grid; gap:8px; }
+.file-label { margin-top:12px; font-weight:600; }
+.backups input { padding:10px; }
+.menu .link { text-align:left; padding:18px; }
+.danger { margin-top:12px; border:1px solid #753c48; border-radius:10px; }
+h1 { overflow-wrap:anywhere; }
+@media (prefers-reduced-motion:reduce) { #view { animation:none; } }
