@@ -1,9 +1,10 @@
 """Run with a server exposing /workspace on port 8001; requires Playwright + Chromium."""
 import json
+import os
 from playwright.sync_api import sync_playwright
 URL = 'http://127.0.0.1:8001/carnet-de-route/'
 with sync_playwright() as p:
-    browser = p.chromium.launch(executable_path='/usr/bin/chromium', args=['--no-sandbox'])
+    browser = p.chromium.launch(executable_path=os.environ.get('CHROMIUM_EXECUTABLE_PATH'), args=['--no-sandbox'])
     context = browser.new_context(viewport={'width':390,'height':844}, locale='fr-BE', accept_downloads=True)
     page = context.new_page()
     errors = []

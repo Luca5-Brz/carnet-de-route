@@ -1,10 +1,11 @@
 """V1.1 functional regression: server and requirements are described in README."""
 import json
+import os
 from playwright.sync_api import sync_playwright
 URL='http://127.0.0.1:8001/carnet-de-route/'
 legacy={'vehicles':[{'id':'v1','name':'Fourgon','plate':'ABC'},{'id':'v2','name':'Auto','plate':''}], 'events':[{'id':'e','name':'Festival','date':'2026-10-01','place':''}], 'trips':[{'id':'old','vehicle':'v1','event':'e','date':'2026-10-01','start':10,'end':30,'note':'Ancien'}]}
 with sync_playwright() as p:
-    browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+    browser=p.chromium.launch(executable_path=os.environ.get('CHROMIUM_EXECUTABLE_PATH'),args=['--no-sandbox'])
     context=browser.new_context(viewport={'width':390,'height':844},locale='fr-BE')
     page=context.new_page();errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))

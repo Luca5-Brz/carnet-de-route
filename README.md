@@ -75,13 +75,22 @@ node --test tests/data.test.mjs
 
 Ces tests couvrent distances, totaux, regroupement hiérarchique, tri, validation des imports, aller-retour JSON, CSV et migration.
 
-Tests fonctionnels : Python 3, paquet `playwright` et Chromium requis **uniquement pour les tests**. Dans l’environnement cloud préparé, ils sont déjà disponibles. Démarrer le serveur ci-dessus sur le port 8001 puis :
+Tests fonctionnels : Python 3, paquet `playwright` et Chromium requis **uniquement pour les tests**. Installer les outils de test dans un environnement Python dédié :
+
+```sh
+python3 -m venv /tmp/carnet-tests-venv
+. /tmp/carnet-tests-venv/bin/activate
+python -m pip install -r tests/requirements.txt
+python -m playwright install --with-deps chromium
+```
+
+Démarrer le serveur ci-dessus sur le port 8001 puis :
 
 ```sh
 python3 tests/browser.py
 python3 tests/ongoing.py
 ```
 
-Le test utilise `/usr/bin/chromium` et des profils temporaires : création/modification, blocage des suppressions liées, export CSV/JSON, restauration valide et invalide, migration, disposition mobile et création/consultation après coupure réseau et rechargement. Le second parcours vérifie spécifiquement les anciennes données IndexedDB et JSON, deux trajets en cours sur des véhicules distincts, le refus d’un doublon, la modification/suppression, la clôture hors ligne, les totaux et la restauration V2. Les tests ne modifient pas votre profil utilisateur. Sur une autre machine, installer Playwright avec `python3 -m pip install playwright` et adapter le chemin de Chromium si nécessaire.
+Les tests utilisent par défaut le Chromium installé par Playwright et des profils temporaires : création/modification, blocage des suppressions liées, export CSV/JSON, restauration valide et invalide, migration, disposition mobile et création/consultation après coupure réseau et rechargement. Le second parcours vérifie spécifiquement les anciennes données IndexedDB et JSON, deux trajets en cours sur des véhicules distincts, le refus d’un doublon, la modification/suppression, la clôture hors ligne, les totaux et la restauration V2. Les tests ne modifient pas votre profil utilisateur. Pour utiliser un Chromium système dans l’environnement cloud, définir `CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` avant les commandes de test. Aucun chemin de navigateur système n’est imposé au runner GitHub Actions. Le job `browser` installe Python, Playwright et son Chromium avec les dépendances système, démarre le serveur sur le port 8001, attend sa disponibilité, puis exécute les deux parcours ; un échec arrête le job et le serveur est arrêté à la sortie.
 
 Une vérification manuelle sur un iPhone reste nécessaire pour valider les particularités de Safari, le menu de partage, le téléchargement des sauvegardes et le lancement depuis l’écran d’accueil.
