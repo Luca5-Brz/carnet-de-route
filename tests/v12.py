@@ -55,7 +55,7 @@ with sync_playwright() as p:
         for (const [type, y] of [['touchstart', 10], ['touchmove', 150], ['touchend', 150]]) {
             const e = new Event(type, {bubbles: true, cancelable: true});
             Object.defineProperty(e, type === 'touchend' ? 'changedTouches' : 'touches', {value: [{clientY: y}]});
-            document.dispatchEvent(e);
+            document.body.dispatchEvent(e);
         }
     }""")
     page.wait_for_function("document.querySelector('#message').textContent.includes('actualisées')")
