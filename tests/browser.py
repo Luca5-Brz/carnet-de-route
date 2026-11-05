@@ -14,9 +14,10 @@ with sync_playwright() as p:
     page.wait_for_function("document.querySelector('#offline').textContent === 'Hors ligne prêt'")
     def go(action):
         page.locator(f'#nav [data-action="{action}"]').click()
+        page.wait_for_function('(action) => document.querySelector(`#nav [data-action="${action}"]`).getAttribute("aria-current") === "page"', arg=action)
     def save():
         page.locator('button.primary').click()
-        page.wait_for_function("!document.querySelector('form')")
+        page.wait_for_function("!document.querySelector('form:not([data-form=export])')")
     go('manage')
     page.get_by_role('button',name='Ajouter un véhicule').click()
     page.locator('#name').fill('Fourgon')
@@ -28,6 +29,7 @@ with sync_playwright() as p:
     page.locator('#place').fill('Liège')
     save()
     go('trip')
+    page.locator('#status').select_option('completed')
     page.locator('#start').fill('100')
     page.locator('#end').fill('90')
     assert not page.locator('#end').evaluate('(el)=>el.checkValidity()')
@@ -51,7 +53,7 @@ with sync_playwright() as p:
     go('manage')
     with page.expect_download() as download:
         page.get_by_role('button',name='Sauvegarder JSON').click()
-    saved = json.loads(open(download.value.path()).read())
+    saved = json.loads(open(download.value.path(), encoding='utf-8').read())
     assert saved['data']['trips'][0]['end'] == 130
     with page.expect_download() as download:
         page.get_by_role('button',name='Exporter CSV').click()
@@ -64,8 +66,9 @@ with sync_playwright() as p:
     page.reload()
     page.wait_for_selector('#nav button')
     go('history')
-    assert 'Fourgon modifié' in page.locator('#view').inner_text()
+    assert 'Fourgon modifié' in page.locator('#view').inner_text(), page.locator('body').inner_text()
     go('trip')
+    page.locator('#status').select_option('completed')
     page.locator('#start').fill('130')
     page.locator('#end').fill('140')
     save()

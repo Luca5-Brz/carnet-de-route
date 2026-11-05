@@ -1,5 +1,5 @@
-const CACHE = 'carnet-route-shell-v1.1.1';
-const ASSETS = ['./','./index.html','./css/style.css','./js/app.js','./js/data.js','./js/storage.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
+const CACHE = 'carnet-route-shell-v1.2.0';
+const ASSETS = ['./','./index.html','./css/style.css','./js/app.js','./js/data.js','./js/report.js','./js/storage.js','./manifest.webmanifest','./icons/icon.svg','./icons/icon-192.png','./icons/icon-512.png','./icons/apple-touch-icon.png'];
 self.addEventListener('install',event=>{
     event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)));
 });

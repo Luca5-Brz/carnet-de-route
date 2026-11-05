@@ -49,3 +49,4 @@ jobs:
           PY
           python3 carnet-de-route/tests/browser.py
           python3 carnet-de-route/tests/ongoing.py
+          python3 carnet-de-route/tests/v12.py
