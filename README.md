@@ -1,4 +1,4 @@
-# Carnet de route — V1.1
+# Carnet de route — V1.2
 
 PWA personnelle en français pour iPhone : véhicules, événements et trajets kilométriques. HTML, CSS et JavaScript natifs, sans backend, dépendance d’exécution ni outil de compilation.
 
@@ -94,3 +94,25 @@ python3 tests/ongoing.py
 Les tests utilisent par défaut le Chromium installé par Playwright et des profils temporaires : création/modification, blocage des suppressions liées, export CSV/JSON, restauration valide et invalide, migration, disposition mobile et création/consultation après coupure réseau et rechargement. Le second parcours vérifie spécifiquement les anciennes données IndexedDB et JSON, deux trajets en cours sur des véhicules distincts, le refus d’un doublon, la modification/suppression, la clôture hors ligne, les totaux et la restauration V2. Les tests ne modifient pas votre profil utilisateur. Pour utiliser un Chromium système dans l’environnement cloud, définir `CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium` avant les commandes de test. Aucun chemin de navigateur système n’est imposé au runner GitHub Actions. Le job `browser` installe Python, Playwright et son Chromium avec les dépendances système, démarre le serveur sur le port 8001, attend sa disponibilité, puis exécute les deux parcours ; un échec arrête le job et le serveur est arrêté à la sortie.
 
 Une vérification manuelle sur un iPhone reste nécessaire pour valider les particularités de Safari, le menu de partage, le téléchargement des sauvegardes et le lancement depuis l’écran d’accueil.
+
+## V1.2
+
+- « Démarrer un trajet » ouvre par défaut la saisie en cours. Le mode complet reste disponible.
+- Les trajets restent regroupés par événement et véhicule, avec date de trajet décroissante puis ordre de création décroissant. L’ordre des anciens trajets est déduit de leur position enregistrée ; modifier un trajet conserve cet ordre.
+- Tirer vers le bas en haut de chaque page (ou bouton ↻) relit les données locales sans recharger la page. Les formulaires et fichiers sélectionnés restent intacts. Cette action fonctionne hors ligne et ne force pas une mise à jour de l’application.
+- Démarrer un autre trajet en cours du même véhicule demande confirmation. Son compteur de départ clôture le précédent ; les deux changements sont validés avant une écriture IndexedDB unique. Une erreur ou un refus conserve les données et la saisie.
+- Gestion : tarif par véhicule en EUR/km, de 0 à 1000, jusqu’à quatre décimales. Le tarif courant est figé à la clôture (ou à la création d’un trajet complet). La modification ultérieure d’un véhicule ou d’un trajet terminé conserve ce tarif. Un trajet rouvert sera retarifé lors de sa nouvelle clôture. Les indemnités sont arrondies au centime par trajet puis additionnées.
+- Les trajets terminés anciens restent « Tarif non renseigné », sans calcul rétroactif. Les totaux d’indemnités additionnent les montants connus ; les trajets en cours sont exclus des distances et montants.
+- Gestion : export d’un événement avec plusieurs véhicules cochés, CSV et aperçu imprimable PDF. L’aperçu contient les commentaires intégraux, les compteurs, statuts, tarifs et totaux par véhicule et événement. Le PDF est produit par la fonction d’impression du navigateur (sur iPhone, partager l’aperçu et enregistrer dans Fichiers). Aucun service externe n’est utilisé. Les véhicules sélectionnés sans trajet ne contribuent pas aux totaux.
+
+### Migration et partage
+
+Le JSON exporté utilise désormais `version: 3`. Les imports V1 et V2 restent pris en charge ; l’export V3 doit être restauré avec V1.2 ou ultérieure. La base IndexedDB `carnet-route`, sa version et son magasin `state` sont conservés. La normalisation ajoute `rate` aux véhicules, `rate` figé et `createdAt` aux trajets ; elle est idempotente et enregistrée par transaction sans effacement. L’ancienne copie localStorage reste préservée.
+
+Le dépôt ne contient aucun carnet personnel, secret, sauvegarde ou donnée de démonstration. Le partage de l’URL distribue uniquement les fichiers de l’application ; chaque nouveau navigateur/profil ouvre un carnet vide, sauf s’il contient déjà une ancienne copie locale. Ne partagez pas vos fichiers JSON/CSV/PDF personnels pour distribuer l’app. Aucun bouton de remise à zéro n’est nécessaire pour partager une installation vierge.
+
+La synchronisation multi-appareils et les notifications persistantes iOS sont reportées. Continuer à utiliser un seul onglet pour saisir : les écritures simultanées entre onglets ne sont pas coordonnées.
+
+### Validation iPhone avant fusion
+
+Tester dans Safari et depuis l’écran d’accueil : largeur du calendrier à 320/390 px, geste d’actualisation avec une saisie non enregistrée, enchaînement accepté/refusé, mode avion, export CSV avec plusieurs véhicules, aperçu PDF et partage vers Fichiers. Les tests automatisés ne remplacent pas cette validation sur appareil réel.

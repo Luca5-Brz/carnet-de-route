@@ -28,7 +28,7 @@ with sync_playwright() as p:
     start('v1')
     assert page.locator('.ongoing').count()==1
     go('trip');page.locator('#status').select_option('in-progress');page.locator('#start').fill('101')
-    assert not page.locator('#vehicle').evaluate('(el)=>el.checkValidity()')
+    assert page.locator('#vehicle').evaluate('(el)=>el.checkValidity()')
     start('v2');assert page.locator('.ongoing').count()==2
     assert '20 km' in page.locator('.stats').inner_text()
     go('history');assert page.locator('.trip').count()==3
@@ -38,7 +38,7 @@ with sync_playwright() as p:
     page.wait_for_selector('.ongoing')
     go('manage')
     with page.expect_download() as download:page.get_by_role('button',name='Sauvegarder JSON').click()
-    saved=json.loads(open(download.value.path()).read());assert saved['version']==2
+    saved=json.loads(open(download.value.path(), encoding='utf-8').read());assert saved['version']==3
     assert sum(t['status']=='in-progress' for t in saved['data']['trips'])==2
     page.locator('#restore').set_input_files({'name':'v2.json','mimeType':'application/json','buffer':json.dumps(saved).encode()})
     page.wait_for_function("document.querySelector('#message').textContent.includes('Sauvegarde restaurée')")
