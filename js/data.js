@@ -315,3 +315,18 @@ export function eventCsv(data) {
       .join("\r\n")
   );
 }
+
+// Only historical completed trips without a frozen rate are eligible.
+// Leave vehicles without a configured positive rate available for a later run.
+export function applyHistoricalRates(data) {
+  const next = validate({ version: 3, data });
+  for (const trip of next.trips) {
+    const vehicle = next.vehicles.find(
+      (vehicle) => vehicle.id === trip.vehicle,
+    );
+    if (!inProgress(trip) && trip.rate === null && vehicle.rate > 0) {
+      trip.rate = vehicle.rate;
+    }
+  }
+  return next;
+}

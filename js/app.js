@@ -7,6 +7,7 @@ import {
   validate,
   inProgress,
   finishTrip,
+  applyHistoricalRates,
   saveTrip,
   chainTrip,
   allowance,
@@ -210,6 +211,14 @@ function management() {
       }
     </div>
     ${button("＋ Ajouter un événement", "event")} ${exportForm()}
+    <h2>Indemnités des anciens trajets</h2>
+    <div class="card backups">
+      <p>
+        Configurez le tarif dans chaque véhicule, puis appliquez-le aux anciens
+        trajets terminés sans tarif. Les tarifs déjà figés sont conservés.
+      </p>
+      ${button("Comptabiliser les anciens trajets", "historical-rates")}
+    </div>
     <h2>Sauvegardes</h2>
     <div class="card backups">
       ${button("Exporter CSV (Excel)", "csv")}${button(
@@ -501,6 +510,54 @@ document.addEventListener("click", async (e) => {
   const action = b.dataset.action,
     id = b.dataset.id;
   try {
+    if (action === "historical-rates") {
+      const next = applyHistoricalRates(data);
+      const changed = next.trips.filter(
+        (trip, index) =>
+          trip.rate !== data.trips[index].rate && trip.rate !== null,
+      );
+      if (!changed.length) {
+        message(
+          "Aucun ancien trajet à comptabiliser. Configurez un tarif supérieur à zéro dans vos véhicules.",
+        );
+        return;
+      }
+      const details = next.vehicles
+        .map((vehicle) => {
+          const trips = changed.filter((trip) => trip.vehicle === vehicle.id);
+          return trips.length
+            ? vehicle.name +
+                " : " +
+                trips.length +
+                " trajet(s), " +
+                km(total(trips)) +
+                " à " +
+                vehicle.rate +
+                " €/km = " +
+                money(compensation(trips))
+            : "";
+        })
+        .filter(Boolean)
+        .join("\n");
+      if (
+        !confirm(
+          "Appliquer les tarifs actuels aux anciens trajets ?\n\n" +
+            details +
+            "\n\nCes tarifs seront figés. Les compteurs et les tarifs déjà enregistrés restent inchangés.",
+        )
+      )
+        return;
+      busy = true;
+      await commit(next);
+      render();
+      message(
+        changed.length +
+          " ancien(s) trajet(s) comptabilisé(s) : " +
+          money(compensation(changed)) +
+          ".",
+      );
+      return;
+    }
     if (action === "refresh") {
       await refresh();
       return;

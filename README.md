@@ -116,3 +116,7 @@ La synchronisation multi-appareils et les notifications persistantes iOS sont re
 ### Validation iPhone avant fusion
 
 Tester dans Safari et depuis l’écran d’accueil : largeur du calendrier à 320/390 px, geste d’actualisation avec une saisie non enregistrée, enchaînement accepté/refusé, mode avion, export CSV avec plusieurs véhicules, aperçu PDF et partage vers Fichiers. Les tests automatisés ne remplacent pas cette validation sur appareil réel.
+
+## V1.2.1 — indemnités des anciens trajets
+
+Dans Gestion, configurez d’abord le tarif de chaque véhicule, puis touchez **Comptabiliser les anciens trajets**. Une confirmation présente les véhicules, tarifs, kilomètres et montants concernés. Les trajets terminés sans tarif historique reçoivent le tarif actuel du véhicule, puis ce tarif reste figé. Les trajets en cours, les tarifs déjà figés (y compris zéro) et les véhicules dont le tarif est encore zéro restent inchangés. L’opération fonctionne hors ligne, est enregistrée en une transaction et peut être répétée sans doubler les montants. Les totaux et exports utilisent immédiatement les indemnités ainsi ajoutées.

@@ -255,3 +255,31 @@ test("V1.2 : migration idempotente et contrôle des nouveaux champs", () => {
     assert.throws(() => validate({ version: 3, data: invalid }));
   }
 });
+
+test("historical rates: preserve frozen rates, skip active and unset vehicles, remain idempotent", async () => {
+  const { applyHistoricalRates } = await import("../js/data.js");
+  const original = validate({ version: 1, data });
+  original.vehicles[0].rate = 0.5;
+  original.trips[2].rate = 0.25;
+  original.trips.push(active("ongoing"));
+  const next = applyHistoricalRates(original);
+  assert.equal(next.trips[0].rate, 0.5);
+  assert.equal(next.trips[1].rate, null);
+  assert.equal(next.trips[2].rate, 0.25);
+  assert.equal(next.trips.at(-1).rate, null);
+  assert.equal(compensation(next.trips), 15);
+  assert.equal(original.trips[0].rate, null);
+  assert.deepEqual(applyHistoricalRates(next), next);
+  assert.deepEqual(
+    next.trips.map(({ rate, ...trip }) => trip),
+    validate({ version: 3, data: original }).trips.map(
+      ({ rate, ...trip }) => trip,
+    ),
+  );
+  next.vehicles[1].rate = 1;
+  const later = applyHistoricalRates(next);
+  assert.equal(later.trips[1].rate, 1);
+  assert.equal(later.trips[0].rate, 0.5);
+  assert.deepEqual(validate(JSON.parse(backup(later))), later);
+  assert.ok(csv(later).includes("12.50"));
+});

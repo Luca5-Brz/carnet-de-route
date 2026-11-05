@@ -75,6 +75,42 @@ with sync_playwright() as p:
     report.close()
     page.reload()
     page.wait_for_selector('.ongoing')
+    # Add an old V1-style completed trip to the temporary test database.
+    page.evaluate("""async () => {
+        const db = await new Promise(resolve => {
+            const request = indexedDB.open('carnet-route', 1);
+            request.onsuccess = () => resolve(request.result);
+        });
+        await new Promise((resolve, reject) => {
+            const tx = db.transaction('state', 'readwrite');
+            const store = tx.objectStore('state');
+            const request = store.get('data');
+            request.onsuccess = () => {
+                const data = request.result;
+                const old = {...data.trips.find(t => t.status === 'completed'), id: 'historical', start: 100, end: 110};
+                delete old.rate;
+                data.trips.push(old);
+                store.put(data, 'data');
+            };
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+        });
+        db.close();
+    }""")
+    page.reload()
+    page.wait_for_selector('.ongoing')
+    go('manage')
+    page.once('dialog', lambda dialog: dialog.dismiss())
+    page.get_by_role('button', name='Comptabiliser les anciens trajets').click()
+    go('home')
+    assert '12,50' in page.locator('.stats').inner_text()
+    go('manage')
+    page.once('dialog', lambda dialog: dialog.accept())
+    page.get_by_role('button', name='Comptabiliser les anciens trajets').click()
+    page.wait_for_function("document.querySelector('#message').textContent.includes('comptabilisé(s)')")
+    page.reload()
+    page.wait_for_selector('.ongoing')
+    assert '17,50' in page.locator('.stats').inner_text()
     assert not errors, errors
     browser.close()
     print('PASS V1.2: empty profile, rate, default, refresh drafts, chain cancel/accept, offline exports PDF/CSV')
