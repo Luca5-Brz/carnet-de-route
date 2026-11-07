@@ -45,7 +45,7 @@ let data,
   busy = false;
 const titles = {
   finances: "Finances",
-  payment: "Paiement reçu",
+  payment: "Remboursement reçu",
   opening: "Solde initial",
   home: "Carnet de route",
   trip: "Démarrer un trajet",
@@ -631,7 +631,7 @@ document.addEventListener("submit", async (e) => {
         const index = next.payments.findIndex((item) => item.id === edit);
         if (index < 0) next.payments.push(payment);
         else {
-          if (!confirm("Confirmer la modification de ce paiement ?")) return;
+          if (!confirm("Confirmer la modification de ce remboursement ?")) return;
           next.payments[index] = payment;
         }
       }
@@ -701,7 +701,7 @@ document.addEventListener("change", async (e) => {
     const next = validate(JSON.parse(await file.text()));
     if (
       !confirm(
-        `Remplacer les données actuelles par ${next.vehicles.length} véhicule(s), ${next.events.length} événement(s) et ${next.trips.length} trajet(s), ${next.payments.length} paiement(s) et un solde initial de ${money(next.openingBalance)} ?`,
+        `Remplacer les données actuelles par ${next.vehicles.length} véhicule(s), ${next.events.length} événement(s) et ${next.trips.length} trajet(s), ${next.payments.length} remboursement(s) reçu(s) et un solde initial de ${money(next.openingBalance)} ?`,
       )
     )
       return;
@@ -806,16 +806,17 @@ function financeView() {
       <strong id="finance-balance">${money(totals.balance)}</strong>
       <p>Indemnités cumulées : ${money(totals.indemnities)}</p>
       <p>Solde initial : ${money(data.openingBalance)}</p>
-      <p>Paiements reçus : ${money(totals.paid)}</p>
-      <p class="muted">Indemnités + solde initial − paiements reçus.
+      <p>Remboursements reçus : ${money(totals.paid)}</p>
+      <p class="muted">Indemnités + solde initial − remboursements reçus.
         Un solde négatif indique une avance de l’employeur.</p>
       ${button("Modifier le solde initial", "opening")}
     </section>
     ${totals.unrated ? `<p class="muted">${totals.unrated} trajet(s) terminé(s) sans tarif : indemnités non incluses. Configurez les tarifs puis utilisez « Comptabiliser les anciens trajets » dans Gestion.</p>` : ""}
-    <p class="muted">Les paiements sont globaux, sans lien avec un événement ou un véhicule.
+    <p class="muted">Les remboursements reçus sont les montants déjà versés par votre employeur.
+      Ils sont globaux, sans lien avec un événement ou un véhicule.
       Les trajets en cours sont exclus des indemnités.</p>
-    ${button("Ajouter un paiement", "payment", "", "primary")}
-    <h2>Historique des paiements</h2>
+    ${button("Ajouter un remboursement reçu", "payment", "", "primary")}
+    <h2>Historique des remboursements reçus</h2>
     <div class="card">
       ${[...data.payments]
         .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
@@ -829,7 +830,7 @@ function financeView() {
           ${button("Modifier", "payment", payment.id)}
         </div>
         `)
-        .join("") || '<p class="empty">Aucun paiement reçu</p>'}
+        .join("") || '<p class="empty">Aucun remboursement reçu</p>'}
     </div>
   `;
 }
@@ -851,14 +852,14 @@ function financeForm() {
   };
   return /* HTML */ `
     <form data-form="payment">
-      ${field("Date du paiement", "date", payment.date, "date")}
+      ${field("Date du remboursement", "date", payment.date, "date")}
       ${field("Montant reçu (€)", "amount", payment.amount, "number")}
       <div class="field">
         <label for="comment">Commentaire (facultatif)</label>
         <textarea id="comment" name="comment" maxlength="5000">${esc(payment.comment)}</textarea>
       </div>
-      <button class="primary">Enregistrer le paiement</button>
-      ${edit ? button("Supprimer ce paiement", "delete-payment", edit, "danger") : ""}
+      <button class="primary">Enregistrer le remboursement</button>
+      ${edit ? button("Supprimer ce remboursement", "delete-payment", edit, "danger") : ""}
       ${button("Annuler", "finances")}
     </form>
   `;
