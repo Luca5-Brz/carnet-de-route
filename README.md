@@ -1,4 +1,4 @@
-# Carnet de route — V1.2
+# Carnet de route — V1.3
 
 PWA personnelle en français pour iPhone : véhicules, événements et trajets kilométriques. HTML, CSS et JavaScript natifs, sans backend, dépendance d’exécution ni outil de compilation.
 
@@ -120,3 +120,16 @@ Tester dans Safari et depuis l’écran d’accueil : largeur du calendrier à 3
 ## V1.2.1 — indemnités des anciens trajets
 
 Dans Gestion, configurez d’abord le tarif de chaque véhicule, puis touchez **Comptabiliser les anciens trajets**. Une confirmation présente les véhicules, tarifs, kilomètres et montants concernés. Les trajets terminés sans tarif historique reçoivent le tarif actuel du véhicule, puis ce tarif reste figé. Les trajets en cours, les tarifs déjà figés (y compris zéro) et les véhicules dont le tarif est encore zéro restent inchangés. L’opération fonctionne hors ligne, est enregistrée en une transaction et peut être répétée sans doubler les montants. Les totaux et exports utilisent immédiatement les indemnités ainsi ajoutées.
+
+
+## V1.3 — Finances (mémo n°12)
+
+L’onglet **Finances** affiche les indemnités des trajets terminés, les paiements globaux de l’employeur et le solde restant dû : indemnités cumulées + solde initial − remboursements reçus. Les montants utilisent le tarif figé V1.2 et l’arrondi au centime par trajet. Les corrections et suppressions recalculent le solde à partir des trajets présents, sans registre dupliqué. Un trajet en cours ne génère pas d’indemnité. Les anciens trajets sans tarif sont signalés et restent exclus jusqu’à leur comptabilisation explicite dans Gestion.
+
+**Ajouter un remboursement reçu** demande une date, un montant positif avec au maximum deux décimales et un commentaire facultatif. Aucun événement ni véhicule ne peut lui être attribué. L’historique est trié par date décroissante ; modification et suppression demandent confirmation. Le solde initial peut être modifié, y compris avec un montant négatif pour une avance antérieure. Il doit uniquement couvrir les montants antérieurs aux trajets du carnet afin d’éviter leur double comptage. Les montants saisis sont limités à un milliard d’euros en valeur absolue.
+
+Les sauvegardes exportées sont en **version 4**, avec `payments` et `openingBalance`. Les imports V1, V2 et V3 sont conservés et reçoivent une liste de paiements vide et un solde initial nul. Restaurer une ancienne sauvegarde remplace aussi les finances ; la confirmation indique les paiements et le solde importés. Une sauvegarde V4 nécessite V1.3 ou ultérieure. Les exports CSV/PDF par événement restent des relevés de trajets et ne répartissent pas les paiements globaux.
+
+La base IndexedDB, sa version et son magasin restent identiques. À l’ouverture, la normalisation ajoute les champs financiers manquants puis enregistre le résultat en une transaction, sans effacer la base ni la copie localStorage. Une erreur de validation ou d’écriture conserve les données précédentes. Les finances fonctionnent hors ligne et bénéficient du même rafraîchissement local que les autres écrans. Le cache applicatif est incrémenté en V1.3.
+
+Validation : tests métier Node et parcours navigateur `tests/finances.py` (saisie, annulation/confirmation, persistance hors ligne, sauvegarde/restauration, largeur 320 px). Les anciens parcours restent dans la CI. Une vérification sur un iPhone réel reste nécessaire avant fusion.

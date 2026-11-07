@@ -1,4 +1,10 @@
-export const empty = () => ({ vehicles: [], events: [], trips: [] });
+export const empty = () => ({
+  vehicles: [],
+  events: [],
+  trips: [],
+  payments: [],
+  openingBalance: 0,
+});
 export const inProgress = (t) => t.status === "in-progress";
 export const distance = (t) => (inProgress(t) ? 0 : t.end - t.start);
 export const total = (trips) => trips.reduce((sum, t) => sum + distance(t), 0);
@@ -8,9 +14,9 @@ const validDate = (s) =>
   !Number.isNaN(Date.parse(s)) &&
   new Date(s).toISOString().slice(0, 10) === s;
 export function validate(input) {
-  if (!input || ![1, 2, 3].includes(input.version) || !input.data)
+  if (!input || ![1, 2, 3, 4].includes(input.version) || !input.data)
     throw Error(
-      "Format de sauvegarde non reconnu (version 1, 2 ou 3 requise).",
+      "Format de sauvegarde non reconnu (version 1, 2, 3 ou 4 requise).",
     );
   const d = input.data;
   for (const type of ["vehicles", "events", "trips"]) {
@@ -70,7 +76,42 @@ export function validate(input) {
       throw Error("Un seul trajet en cours est autorisé par véhicule.");
     activeVehicles.add(t.vehicle);
   }
+  const payments = d.payments === undefined ? [] : d.payments;
+  const openingBalance = d.openingBalance === undefined ? 0 : d.openingBalance;
+  if (
+    !Array.isArray(payments) ||
+    !validMoney(openingBalance) ||
+    (input.version === 4 &&
+      (!Array.isArray(d.payments) || d.openingBalance === undefined))
+  )
+    throw Error("Données financières invalides.");
+  const paymentIds = new Set();
+  for (const payment of payments) {
+    if (
+      !payment ||
+      typeof payment.id !== "string" ||
+      !payment.id ||
+      paymentIds.has(payment.id) ||
+      !validDate(payment.date) ||
+      !validMoney(payment.amount) ||
+      payment.amount <= 0 ||
+      typeof payment.comment !== "string" ||
+      payment.comment.length > 5000 ||
+      Object.keys(payment).some(
+        (key) => !["id", "date", "amount", "comment"].includes(key),
+      )
+    )
+      throw Error("Paiement global invalide.");
+    paymentIds.add(payment.id);
+  }
   return structuredClone({
+    payments: payments.map(({ id, date, amount, comment }) => ({
+      id,
+      date,
+      amount,
+      comment,
+    })),
+    openingBalance,
     vehicles: d.vehicles.map(({ id, name, plate, rate = 0 }) => ({
       id,
       name,
@@ -141,7 +182,11 @@ export function groups(d) {
 }
 export const backup = (d) =>
   JSON.stringify(
-    { version: 3, exportedAt: new Date().toISOString(), data: d },
+    {
+      version: 4,
+      exportedAt: new Date().toISOString(),
+      data: validate({ version: 3, data: d }),
+    },
     null,
     2,
   );
@@ -329,4 +374,28 @@ export function applyHistoricalRates(data) {
     }
   }
   return next;
+}
+
+// Monetary inputs are bounded and represented as safe integer cents in totals.
+const validMoney = (value) =>
+  Number.isFinite(value) &&
+  Math.abs(value) <= 1_000_000_000 &&
+  Math.abs(value * 100 - Math.round(value * 100)) < 0.000001;
+
+export function finances(data) {
+  const indemnities = compensation(data.trips);
+  const paidCents = (data.payments ?? []).reduce(
+    (sum, payment) => sum + Math.round(payment.amount * 100),
+    0,
+  );
+  return {
+    indemnities,
+    paid: paidCents / 100,
+    balance:
+      (Math.round(indemnities * 100) +
+        Math.round((data.openingBalance ?? 0) * 100) - paidCents) / 100,
+    unrated: data.trips.filter(
+      (trip) => !inProgress(trip) && trip.rate == null,
+    ).length,
+  };
 }

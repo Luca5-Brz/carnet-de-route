@@ -38,7 +38,7 @@ with sync_playwright() as p:
     page.wait_for_selector('.ongoing')
     go('manage')
     with page.expect_download() as download:page.get_by_role('button',name='Sauvegarder JSON').click()
-    saved=json.loads(open(download.value.path(), encoding='utf-8').read());assert saved['version']==3
+    saved=json.loads(open(download.value.path(), encoding='utf-8').read());assert saved['version']==4
     assert sum(t['status']=='in-progress' for t in saved['data']['trips'])==2
     page.locator('#restore').set_input_files({'name':'v2.json','mimeType':'application/json','buffer':json.dumps(saved).encode()})
     page.wait_for_function("document.querySelector('#message').textContent.includes('Sauvegarde restaurée')")

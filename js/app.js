@@ -1,4 +1,5 @@
 import {
+  finances,
   distance,
   total,
   groups,
@@ -43,6 +44,9 @@ let data,
   edit = null,
   busy = false;
 const titles = {
+  finances: "Finances",
+  payment: "Remboursement reçu",
+  opening: "Solde initial",
   home: "Carnet de route",
   trip: "Démarrer un trajet",
   history: "Historique",
@@ -84,7 +88,11 @@ function field(label, name, value = "", type = "text", required = true) {
         ${required ? "required" : ""}
         ${
           type === "number"
-            ? name === "rate"
+            ? ["amount", "openingBalance"].includes(name)
+              ? 'min="' +
+                (name === "amount" ? '0.01' : '-1000000000') +
+                '" max="1000000000" step="0.01" inputmode="decimal"'
+              : name === "rate"
               ? 'min="0" step="0.0001" max="1000"'
               : 'min="0" step="1" max="9007199254740991"'
             : 'maxlength="500"'
@@ -400,7 +408,11 @@ function render() {
   $("#title").textContent =
     page === "trip" && edit ? "Modifier le trajet" : titles[page];
   $("#view").innerHTML =
-    page === "home"
+    page === "finances"
+      ? financeView()
+      : ["payment", "opening"].includes(page)
+        ? financeForm()
+      : page === "home"
       ? /* HTML */ `
           <p class="eyebrow">VOTRE CARNET PERSONNEL</p>
           <div class="stats">
@@ -439,6 +451,7 @@ function render() {
     ["home", "⌂", "Accueil"],
     ["trip", "＋", "Démarrer un trajet"],
     ["history", "◷", "Historique"],
+    ["finances", "€", "Finances"],
     ["manage", "⚙", "Gestion"],
   ]
     .map(
@@ -564,7 +577,12 @@ document.addEventListener("click", async (e) => {
     }
     if (action.startsWith("delete-")) {
       const type = action.slice(7),
-        list = { trip: "trips", vehicle: "vehicles", event: "events" }[type];
+        list = {
+          trip: "trips",
+          vehicle: "vehicles",
+          event: "events",
+          payment: "payments",
+        }[type];
       if (type !== "trip" && data.trips.some((t) => t[type] === id)) {
         message(
           "Suppression impossible : cet élément est utilisé par des trajets. Modifiez leurs associations pour conserver les trajets.",
@@ -577,7 +595,7 @@ document.addEventListener("click", async (e) => {
       const next = structuredClone(data);
       next[list] = next[list].filter((x) => x.id !== id);
       await commit(next);
-      go(type === "trip" ? "history" : "manage");
+      go(type === "payment" ? "finances" : type === "trip" ? "history" : "manage");
     } else if (action === "csv")
       download(csv(data), "text/csv;charset=utf-8", "csv");
     else if (action === "json")
@@ -600,7 +618,26 @@ document.addEventListener("submit", async (e) => {
     const type = e.target.dataset.form,
       x = Object.fromEntries(new FormData(e.target));
     for (const k in x) x[k] = x[k].trim();
-    if (type === "export") {
+    if (type === "payment" || type === "opening") {
+      const next = structuredClone(data);
+      if (type === "opening") next.openingBalance = Number(x.openingBalance);
+      else {
+        const payment = {
+          id: edit || crypto.randomUUID(),
+          date: x.date,
+          amount: Number(x.amount),
+          comment: x.comment,
+        };
+        const index = next.payments.findIndex((item) => item.id === edit);
+        if (index < 0) next.payments.push(payment);
+        else {
+          if (!confirm("Confirmer la modification de ce remboursement ?")) return;
+          next.payments[index] = payment;
+        }
+      }
+      await commit(next);
+      go("finances");
+    } else if (type === "export") {
       const selected = selectExport(
         data,
         x.event,
@@ -664,7 +701,7 @@ document.addEventListener("change", async (e) => {
     const next = validate(JSON.parse(await file.text()));
     if (
       !confirm(
-        `Remplacer les données actuelles par ${next.vehicles.length} véhicule(s), ${next.events.length} événement(s) et ${next.trips.length} trajet(s) ?`,
+        `Remplacer les données actuelles par ${next.vehicles.length} véhicule(s), ${next.events.length} événement(s) et ${next.trips.length} trajet(s), ${next.payments.length} remboursement(s) reçu(s) et un solde initial de ${money(next.openingBalance)} ?`,
       )
     )
       return;
@@ -760,3 +797,70 @@ document.addEventListener("touchend", (event) => {
     void refresh();
   pullStart = null;
 });
+
+function financeView() {
+  const totals = finances(data);
+  return /* HTML */ `
+    <section class="card finance-summary">
+      <h2>Solde restant dû</h2>
+      <strong id="finance-balance">${money(totals.balance)}</strong>
+      <p>Indemnités cumulées : ${money(totals.indemnities)}</p>
+      <p>Solde initial : ${money(data.openingBalance)}</p>
+      <p>Remboursements reçus : ${money(totals.paid)}</p>
+      <p class="muted">Indemnités + solde initial − remboursements reçus.
+        Un solde négatif indique une avance de l’employeur.</p>
+      ${button("Modifier le solde initial", "opening")}
+    </section>
+    ${totals.unrated ? `<p class="muted">${totals.unrated} trajet(s) terminé(s) sans tarif : indemnités non incluses. Configurez les tarifs puis utilisez « Comptabiliser les anciens trajets » dans Gestion.</p>` : ""}
+    <p class="muted">Les remboursements reçus sont les montants déjà versés par votre employeur.
+      Ils sont globaux, sans lien avec un événement ou un véhicule.
+      Les trajets en cours sont exclus des indemnités.</p>
+    ${button("Ajouter un remboursement reçu", "payment", "", "primary")}
+    <h2>Historique des remboursements reçus</h2>
+    <div class="card">
+      ${[...data.payments]
+        .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
+        .map((payment) => /* HTML */ `
+        <div class="listrow">
+          <div>
+            <b>${money(payment.amount)}</b>
+            <small>${date(payment.date)}</small>
+            <small class="payment-comment">${esc(payment.comment)}</small>
+          </div>
+          ${button("Modifier", "payment", payment.id)}
+        </div>
+        `)
+        .join("") || '<p class="empty">Aucun remboursement reçu</p>'}
+    </div>
+  `;
+}
+function financeForm() {
+  if (page === "opening")
+    return /* HTML */ `
+    <p class="muted">Montant dû avant les trajets présents dans ce carnet.
+      Une avance peut être saisie avec un montant négatif. Évitez d’inclure des indemnités déjà enregistrées.</p>
+    <form data-form="opening">
+      ${field("Solde initial (€)", "openingBalance", data.openingBalance, "number")}
+      <button class="primary">Enregistrer le solde initial</button>
+      ${button("Annuler", "finances")}
+    </form>
+  `;
+  const payment = data.payments.find((item) => item.id === edit) || {
+    date: today(),
+    amount: "",
+    comment: "",
+  };
+  return /* HTML */ `
+    <form data-form="payment">
+      ${field("Date du remboursement", "date", payment.date, "date")}
+      ${field("Montant reçu (€)", "amount", payment.amount, "number")}
+      <div class="field">
+        <label for="comment">Commentaire (facultatif)</label>
+        <textarea id="comment" name="comment" maxlength="5000">${esc(payment.comment)}</textarea>
+      </div>
+      <button class="primary">Enregistrer le remboursement</button>
+      ${edit ? button("Supprimer ce remboursement", "delete-payment", edit, "danger") : ""}
+      ${button("Annuler", "finances")}
+    </form>
+  `;
+}
