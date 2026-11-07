@@ -560,3 +560,21 @@ fieldset label {
   white-space: normal;
   text-align: right;
 }
+
+.finance-summary {
+  padding: 18px;
+  overflow-wrap: anywhere;
+}
+.finance-summary h2 {
+  margin-top: 0;
+}
+#finance-balance {
+  font-size: 30px;
+}
+.payment-comment {
+  white-space: pre-wrap;
+}
+.bottom button {
+  overflow-wrap: anywhere;
+  padding-inline: 2px;
+}

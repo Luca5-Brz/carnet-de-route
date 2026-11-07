@@ -82,7 +82,7 @@ test("sauvegarde JSON complète sans perte", () =>
   ));
 test("validation : format, références, doublons, dates, distances et compteurs", () => {
   for (const mutate of [
-    (x) => (x.version = 4),
+    (x) => (x.version = 5),
     (x) => (x.data.trips[0].end = 99),
     (x) => (x.data.trips[0].start = -1),
     (x) => (x.data.trips[0].start = 1.5),
@@ -182,7 +182,7 @@ test("JSON V2 : aller-retour des deux statuts et rejet des états incohérents",
   const d = structuredClone(data);
   d.trips.push(active("a"));
   const saved = JSON.parse(backup(d));
-  assert.equal(saved.version, 3);
+  assert.equal(saved.version, 4);
   assert.deepEqual(validate(saved), validate({ version: 2, data: d }));
   for (const change of [
     (t) => (t.status = "unknown"),
@@ -282,4 +282,59 @@ test("historical rates: preserve frozen rates, skip active and unset vehicles, r
   assert.equal(later.trips[0].rate, 0.5);
   assert.deepEqual(validate(JSON.parse(backup(later))), later);
   assert.ok(csv(later).includes("12.50"));
+});
+
+
+import { finances, empty } from "../js/data.js";
+
+test("V1.3: global payments, signed opening balance and trip corrections", () => {
+  let d = validate({ version: 3, data });
+  d.vehicles.forEach((v) => v.rate = 0.5);
+  d = saveTrip(d, { ...d.trips[0], id: "new", rate: null });
+  d.openingBalance = 100.01;
+  d.payments = [{ id: "p", date: "2026-11-07", amount: 20.02, comment: "Reçu" }];
+  assert.equal(finances(d).balance, 92.49);
+  d.vehicles[0].rate = 1;
+  d = saveTrip(d, { ...d.trips.find((t) => t.id === "new"), end: 130 });
+  assert.equal(finances(d).balance, 94.99);
+  assert.equal(d.trips.find((t) => t.id === "new").rate, 0.5);
+  d.trips = d.trips.filter((t) => t.id !== "new");
+  assert.equal(finances(d).balance, 79.99);
+  d.openingBalance = -10;
+  assert.equal(finances(d).balance, -30.02);
+  assert.deepEqual(validate(JSON.parse(backup(d))), d);
+  assert.deepEqual(validate({ version: 3, data: d }), d);
+});
+
+test("V1.3: old backups migrate without inventing finance entries", () => {
+  for (const version of [1, 2, 3]) {
+    const d = validate({ version, data });
+    assert.deepEqual(d.payments, []);
+    assert.equal(d.openingBalance, 0);
+    assert.deepEqual(validate({ version: 4, data: d }), d);
+  }
+  assert.equal(finances(empty()).balance, 0);
+});
+
+test("V1.3: invalid finance imports fail without mutation", () => {
+  const original = validate({ version: 3, data });
+  const payment = { id: "p", date: "2026-11-07", amount: 0.1, comment: "" };
+  for (const change of [
+    (d) => d.payments = null,
+    (d) => d.openingBalance = null,
+    (d) => d.openingBalance = 0.001,
+    (d) => d.payments = [payment, payment],
+    ...[0, -1, NaN, Infinity, 0.001, "1", 1000000001].map((amount) =>
+      (d) => d.payments = [{ ...payment, amount }]),
+    (d) => d.payments = [{ ...payment, vehicle: "v1" }],
+    (d) => d.payments = [{ ...payment, event: "e1" }],
+    (d) => d.payments = [{ ...payment, date: "2026-02-30" }],
+  ]) {
+    const d = structuredClone(original);
+    change(d);
+    assert.throws(() => validate({ version: 4, data: d }));
+    assert.deepEqual(original.payments, []);
+  }
+  const d = { ...empty(), payments: [payment, { ...payment, id: "p2", amount: 0.2 }] };
+  assert.equal(finances(d).paid, 0.3);
 });
